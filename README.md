@@ -2,6 +2,8 @@
 
 This demo allows for a user to adjust form inputs and then attach the data to the tangle using Masked Authenticated Messaging.
 
+![Screenshot of Demo](https://i.imgur.com/MquUu75.png)
+
 ### Technology
 
 The demo uses the following:
