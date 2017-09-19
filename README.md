@@ -16,7 +16,7 @@ The demo uses the following:
 
 ### Setup
 
-```
+```shell
 git clone https://github.com/l3wi/audit-mam.git ## clone
 
 cd audit-mam ## Enter directory
