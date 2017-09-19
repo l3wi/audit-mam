@@ -1,0 +1,28 @@
+{
+  "name": "audit-mam",
+  "version": "0.0.1",
+  "contributors": [
+    "Chris Dukakis <chris.dukakis@iota.org>",
+    "Lewis Freiberg <lewis.freiberg@iota.org>"
+  ],
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "chartist": "^0.11.0",
+    "crypto.iota.js": "^0.0.4",
+    "date-fns": "^1.28.5",
+    "iota.lib.js": "git+https://github.com/l3wi/iota.lib.js.git",
+    "mam.client.js": "^0.2.3",
+    "next": "^3.2.2",
+    "react": "^15.6.1",
+    "react-chartist": "^0.13.0",
+    "react-dom": "^15.6.1",
+    "styled-components": "^2.1.0"
+  },
+  "devDependencies": {
+    "babel-preset-stage-2": "^6.24.1"
+  }
+}
