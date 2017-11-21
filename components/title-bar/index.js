@@ -1,9 +1,12 @@
-import styled from "styled-components"
+import styled from 'styled-components'
 
 export default props => (
   <Box>
     {props.title}
-    <Alert {...props}> {props.connected ? `Connected` : "Disconneted"} </Alert>
+    <Alert {...props} onClick={() => props.click()}>
+      {' '}
+      Change Stream{' '}
+    </Alert>
   </Box>
 )
 
@@ -14,13 +17,14 @@ const Logo = styled.img`
 `
 
 const Alert = styled.div`
+  cursor: pointer;
   margin: 0rem 1.5rem;
   padding: 5px 10px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 800;
   color: white;
-  background: ${props => (props.connected ? "#28bebd" : "#9e9e9e")};
+  background: ${props => (props.connected ? '#28bebd' : '#9e9e9e')};
   @media screen and (max-width: 800px) {
     margin-top: 20px;
   }

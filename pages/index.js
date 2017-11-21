@@ -1,14 +1,16 @@
-import React from "react"
-import styled from "styled-components"
-import ChartistGraph from "react-chartist"
-import { init, fetchMAMs, publishMAM, channelkey, newSub } from "../libs/mam.js"
-import { seedGen, utils } from "../libs/utils"
+import React from 'react'
+import styled from 'styled-components'
+import ChartistGraph from 'react-chartist'
+// import { init, fetchMAMs, publishMAM, channelkey, newSub } from "../libs/mam.js"
+import { seedGen, utils } from '../libs/utils'
+import IOTA from 'iota.lib.js'
+import Layout from '../components/layout'
+import TitleBar from '../components/title-bar'
+import Audit from '../components/audit'
 
-import Layout from "../components/layout"
-import TitleBar from "../components/title-bar"
-import Audit from "../components/audit"
+import { format } from 'date-fns'
 
-import { format } from "date-fns"
+const iota = new IOTA({ provider: 'https://testnet140.tangle.works' })
 
 const lineChartData = {
   labels: [1, 2, 3, 4, 5, 6, 7, 8],
@@ -21,7 +23,7 @@ const lineChartOptions = {
   axisX: {
     labelInterpolationFnc: function(value) {
       // Will return Mon, Tue, Wed etc. on medium screens
-      return format(value, "hh:mm:ss")
+      return format(value, 'hh:mm:ss')
     }
   }
 }
@@ -39,6 +41,7 @@ const pie = {
 }
 export default class extends React.Component {
   state = {
+    root: ``,
     messages: [],
     lineChartData: {
       labels: [],
@@ -47,9 +50,9 @@ export default class extends React.Component {
     pieData: {
       series: [122, 123]
     },
-    input: "",
-    userId: "",
-    channel: "",
+    input: '',
+    userId: '',
+    channel: '',
     temperature: 23,
     gradient: 50,
     mam: {},
@@ -57,43 +60,57 @@ export default class extends React.Component {
   }
 
   async componentDidMount() {
-    // Make a seed for the user
-    var seed = await localStorage.getItem("seed")
-    console.log(seed)
-    if (!seed) {
-      seed = seedGen(81)
-      localStorage.setItem("seed", seed)
+    var root = ``
+    console.log(await localStorage.getItem('root'))
+    if ((await localStorage.getItem('root')) !== null) {
+      root = JSON.parse(await localStorage.getItem('root'))
+      this.setState({ root })
+    } else {
+      var resp = await fetch('/root')
+      root = await resp.json()
+      await localStorage.setItem('root', JSON.stringify(root))
+      this.setState({ root })
     }
-    // Initalise MAM using the seed
-    var mam = init(seed)
-    // Save MAM and set user ID as it's channel key
-    this.setState({ mam, userId: mam.channelKey, seed })
-    // Get the contents of the channel
-    this.getChannel(mam)
+
+    this.getChannel(root)
   }
 
-  getChannel = async mam => {
+  getChannel = async () => {
     var messages = []
     // Loop through subscribed channels
-    for (var key in mam.subscribed) {
-      var state = await fetchMAMs(mam, key, function(inital, data) {
-        if (!inital) {
-          console.log("MESSAGE DATA: ", data)
-          messages.push(JSON.parse(data.message))
-        } else {
-          console.log(inital)
-        }
+    // for (var key in mam.subscribed) {
+    //   var state = await fetchMAMs(mam, key, function(inital, data) {
+    //     if (!inital) {
+    //       console.log("MESSAGE DATA: ", data)
+    //       messages.push(JSON.parse(data.message))
+    //     } else {
+    //       console.log(inital)
+    //     }
+    //   })
+    // }
+    var root = this.state.root
+    var resp = await fetch('/fetch', {
+      method: 'post',
+      headers: {
+        Accept: 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: root
       })
-    }
-
-    var txs = JSON.parse(await localStorage.getItem("txs"))
-    txs.map((tx, i) => (messages[i].tx = tx))
+    })
+    // only proceed once promise is resolved
+    let data = JSON.parse(await resp.json())
+    messages = data.messages.map(msg => JSON.parse(iota.utils.fromTrytes(msg)))
+    // var txs = JSON.parse(await localStorage.getItem("txs"))
+    // txs.map((tx, i) => (messages[i].tx = tx))
     // Fill the chart from retrieved data
     var lineChartData = this.state.lineChartData
     messages.map(msg => {
-      lineChartData.labels.push(msg.timestamp)
-      lineChartData.series[0].push(msg.temperature)
+      lineChartData.labels.push(msg.ts)
+      lineChartData.series[0].push(msg.t)
     })
+    console.log(messages)
 
     this.setState({ messages, lineChartData })
     return
@@ -104,18 +121,26 @@ export default class extends React.Component {
       // Message construction
       var messages = this.state.messages
       var packet = {
-        temperature: this.state.temperature,
-        gradient: this.state.gradient,
-        timestamp: Date.now(),
-        time: this.state.time
+        t: this.state.temperature,
+        g: this.state.gradient,
+        ts: Date.now()
       }
-
-      var resp = await publishMAM(this.state.mam, JSON.stringify(packet))
-      console.log(resp.tx)
-      console.log(resp.state)
+      var trytes = iota.utils.toTrytes(JSON.stringify(packet))
+      console.log(trytes)
+      var resp = await fetch('/post', {
+        method: 'post',
+        headers: {
+          Accept: 'application/json, text/plain, */*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ body: trytes })
+      })
+      // only proceed once promise is resolved
+      let data = await resp.json()
+      console.log(data)
       // Counter
       // Add bundle hash
-      packet.tx = resp.tx[1].hash
+      packet.tx = data
       messages.push(packet)
 
       /// Adjust line chart
@@ -133,10 +158,6 @@ export default class extends React.Component {
       // Incriment the counter
       var counter = this.state.counter + 1
 
-      var txHashes = JSON.parse(await localStorage.getItem("txs")) || []
-      txHashes.push(resp.tx[1].hash)
-      localStorage.setItem("txs", JSON.stringify(txHashes))
-
       // Return the state
       this.setState({
         messages,
@@ -146,6 +167,32 @@ export default class extends React.Component {
         loading: false
       })
     })
+  }
+
+  changeStream = async () => {
+    var resp = await fetch('/init')
+    let data = await resp.json()
+    localStorage.setItem('root', JSON.stringify(data))
+    this.setState({
+      root: data,
+      messages: [],
+      lineChartData: {
+        labels: [],
+        series: [[]]
+      },
+      pieData: {
+        series: [122, 123]
+      },
+      input: '',
+      userId: '',
+      channel: '',
+      temperature: 23,
+      gradient: 50,
+      mam: {},
+      counter: 0
+    })
+    console.log(data)
+    alert('Root had been updated')
   }
 
   handleChange = (e, name) => {
@@ -161,6 +208,7 @@ export default class extends React.Component {
         <TitleBar
           title={`Fictional Temperature controlled unit.`}
           connected={true}
+          click={this.changeStream}
         />
         {/* FIRST ROW OF BOXES */}
         <Row>
@@ -172,27 +220,23 @@ export default class extends React.Component {
               style={{ height: 300, marginBottom: -100 }}
               data={this.state.pieData}
               options={pie}
-              type={"Pie"}
+              type={'Pie'}
             />
             <Temperature>
-              {messages[messages.length - 1] ? (
-                `${messages[messages.length - 1].temperature}°`
-              ) : (
-                `--`
-              )}
+              {messages[messages.length - 1]
+                ? `${messages[messages.length - 1].t}°`
+                : `--`}
             </Temperature>
 
             <Block top>
-              <Items>
+              {/* <Items>
                 Current time:{" "}
                 <Value>
-                  {messages[messages.length - 1] ? (
-                    messages[messages.length - 1].time
-                  ) : (
-                    "No time"
-                  )}
+                  {messages[messages.length - 1]
+                    ? messages[messages.length - 1].time
+                    : "No time"}
                 </Value>
-              </Items>
+              </Items> */}
               <Items>
                 Commands sent: <Value>{counter}</Value>
               </Items>
@@ -209,7 +253,7 @@ export default class extends React.Component {
             <ChartistGraph
               data={this.state.lineChartData}
               options={lineChartOptions}
-              type={"Line"}
+              type={'Line'}
             />
             <Block>Control options</Block>
             <Block>
@@ -220,7 +264,7 @@ export default class extends React.Component {
                 min="-65"
                 max="180"
                 value={this.state.temperature}
-                onChange={e => this.handleChange(e, "temperature")}
+                onChange={e => this.handleChange(e, 'temperature')}
                 step="1"
               />
               <TinyRick>
@@ -235,7 +279,7 @@ export default class extends React.Component {
                 min="0"
                 max="100"
                 value={this.state.gradient}
-                onChange={e => this.handleChange(e, "gradient")}
+                onChange={e => this.handleChange(e, 'gradient')}
                 step="1"
               />
               <TinyRick>
@@ -247,16 +291,16 @@ export default class extends React.Component {
 
             <Block>
               <Row>
-                <Input
+                {/* <Input
                   placeholder={`Enter time: 1:31:01`}
                   value={this.state.time}
                   onChange={e => this.handleChange(e, "time")}
-                />
+                /> */}
                 <Button
                   loading={loading}
                   onClick={() => (loading ? null : this.sendMessage())}
                 >
-                  {loading ? "Attaching Log..." : "Send Command"}
+                  {loading ? 'Attaching Log...' : 'Send Command'}
                 </Button>
               </Row>
             </Block>
@@ -265,7 +309,7 @@ export default class extends React.Component {
         {/* SECOND ROW OF BOXES */}
         <Row>
           <Card>
-            <Block>Audit Trail</Block>
+            <Block>Audit Trail - {this.state.root || null}</Block>
             <Audit messages={messages} />
           </Card>
         </Row>
@@ -287,7 +331,7 @@ const Button = styled.button`
   flex: 1;
   height: 45px;
   padding: 10px;
-  background: ${props => (props.loading ? "grey" : "#1d75bc")};
+  background: ${props => (props.loading ? 'grey' : '#1d75bc')};
   border: none;
   color: white;
   border-radius: 8px;
@@ -362,7 +406,8 @@ const Block = styled.div`
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
-  border-top: ${props => (props.top ? "1px solid rgba(0,0,0,0.1)" : null)};
+  border-top: ${props => (props.top ? '1px solid rgba(0,0,0,0.1)' : null)};
+  word-break: break-all;
 `
 
 const Row = styled.section`

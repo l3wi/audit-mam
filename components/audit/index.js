@@ -1,21 +1,21 @@
-import styled from "styled-components"
-import { format } from "date-fns"
+import styled from 'styled-components'
+import { format } from 'date-fns'
 export default props => (
   <AuditBox>
     {props.messages.map(log => (
       <a
-        key={log.timestamp}
-        href={`https://tanglertestnet.codebuffet.co/search/?kind=transaction&hash=${log.tx}`}
+        key={log.ts}
+        href={`https://testnet.thetangle.org/transaction/${log.tx}`}
         target="_blank"
       >
         <Log>
-          {" "}
-          <span>{format(log.timestamp, "HH:mm:ss")}</span>
-          <span>{`Temperature: ${log.temperature}`}</span>
-          <span>{`Gradient: ${log.gradient}`}</span>
-          <span>
+          {' '}
+          <span>{format(log.ts, 'HH:mm:ss')}</span>
+          <span>{`Temperature: ${log.t}`}</span>
+          <span>{`Gradient: ${log.g}`}</span>
+          {/* <span>
             {log.time ? `Time was set: ${log.time}` : "Time was not set"}
-          </span>
+          </span> */}
         </Log>
       </a>
     ))}
@@ -48,5 +48,5 @@ const AuditBox = styled.div`
   display: flex;
   flex-direction: column;
   padding: 0 1.5rem 1.5rem;
-  border-top: ${props => (props.top ? "1px solid rgba(0,0,0,0.1)" : null)};
+  border-top: ${props => (props.top ? '1px solid rgba(0,0,0,0.1)' : null)};
 `
