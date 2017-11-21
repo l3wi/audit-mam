@@ -6,16 +6,19 @@
     "Lewis Freiberg <lewis.freiberg@iota.org>"
   ],
   "scripts": {
-    "dev": "next",
+    "dev": "node server.js",
     "build": "next build",
-    "start": "next start"
+    "start": "NODE_ENV=production node server.js"
   },
   "dependencies": {
+    "body-parser": "^1.18.2",
     "chartist": "^0.11.0",
-    "crypto.iota.js": "^0.0.4",
     "date-fns": "^1.28.5",
-    "iota.lib.js": "git+https://github.com/l3wi/iota.lib.js.git",
-    "mam.client.js": "^0.2.3",
+    "express": "^4.16.2",
+    "iota.lib.js": "l3wi/iota.lib.js",
+    "iota.node.js": "iotaledger/iota.lib.js",
+    "iota.crypto.js": "iotaledger/iota.crypto.js",
+    "mam.client.js": "l3wi/mam.client.js",
     "next": "^3.2.2",
     "react": "^15.6.1",
     "react-chartist": "^0.13.0",
